@@ -66,6 +66,7 @@ class TrailsClient:
         self._connected = threading.Event()
         self._queue: queue.Queue = queue.Queue(maxsize=1024)
         self._shutdown_event = threading.Event()
+        self._terminal = threading.Event()  # Set after Result/Error sent
         self._thread: Optional[threading.Thread] = None
 
         if not noop and config:
@@ -191,6 +192,9 @@ class TrailsClient:
         if self._noop:
             return
         self._seq += 1
+        if msg_type in ("Result", "Error"):
+            self._terminal.set()
+        
         try:
             self._queue.put_nowait((msg_type, payload, self._seq))
         except queue.Full:
@@ -218,7 +222,8 @@ class TrailsClient:
         first_connect = True
         last_seq = 0
 
-        while not self._shutdown_event.is_set():
+        while not self._shutdown_event.is_set() and not self._terminal.is_set():
+
             try:
                 async with websockets.connect(ws_url) as ws:
                     logger.info("WebSocket connected to %s", ws_url)
@@ -255,7 +260,7 @@ class TrailsClient:
 
             self._connected.clear()
 
-            if self._shutdown_event.is_set():
+            if self._shutdown_event.is_set() or self._terminal.is_set():
                 break
 
             # Backoff.

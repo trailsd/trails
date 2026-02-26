@@ -90,7 +90,7 @@ pub async fn connect_app(
             proc_gid = $7,
             pod_name = $8,
             node_name = $9,
-            pod_ip = $10,
+            pod_ip = $10::INET,
             namespace = $11,
             executable = $12
         WHERE app_id = $1
