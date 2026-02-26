@@ -1,0 +1,65 @@
+{
+  "name": "007_reconnect",
+  "description": "Client is 'running', server restarts. Client reconnects with re_register containing same pub_key and last_seq. Server matches in Postgres, verifies pub_key, resumes to 'running'.",
+  "phase": 1,
+  "steps": [
+    {
+      "action": "setup",
+      "description": "Register a new app, send Status to reach 'running'. Record pub_key and last_seq."
+    },
+    {
+      "action": "server_action",
+      "action_type": "simulate_restart",
+      "description": "Server marks this app as 'reconnecting' (simulating restart sequence from spec §19)."
+    },
+    {
+      "action": "db_check",
+      "query": "SELECT status FROM apps WHERE app_id = '{{APP_ID_RECON}}'",
+      "expect": { "status": "reconnecting" }
+    },
+    {
+      "action": "client_send",
+      "message": {
+        "type": "re_register",
+        "app_id": "{{APP_ID_RECON}}",
+        "last_seq": "{{LAST_SEQ}}",
+        "pub_key": "{{CLIENT_PUB_KEY}}",
+        "sig": null
+      }
+    },
+    {
+      "action": "client_expect",
+      "checks": [
+        { "field": "type", "equals": "registered" },
+        { "field": "app_id", "equals": "{{APP_ID_RECON}}" }
+      ]
+    },
+    {
+      "action": "db_check",
+      "query": "SELECT status FROM apps WHERE app_id = '{{APP_ID_RECON}}'",
+      "expect": { "status": "running" }
+    },
+    {
+      "action": "client_send",
+      "description": "Client can resume sending messages after reconnection.",
+      "message": {
+        "type": "message",
+        "app_id": "{{APP_ID_RECON}}",
+        "header": {
+          "msg_type": "Status",
+          "timestamp": "{{NOW_MS}}",
+          "seq": "{{LAST_SEQ + 1}}",
+          "correlation_id": null
+        },
+        "payload": { "phase": "resumed", "progress": 0.8 },
+        "sig": null
+      }
+    },
+    {
+      "action": "client_expect",
+      "checks": [
+        { "field": "type", "equals": "ack" }
+      ]
+    }
+  ]
+}

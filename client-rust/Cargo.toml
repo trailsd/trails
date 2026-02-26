@@ -1,0 +1,26 @@
+[package]
+name = "trails-client"
+version = "0.1.0"
+edition = "2021"
+description = "TRAILS client — Tree-scoped Relay for Application Info, Lifecycle, and Signaling"
+license = "Apache-2.0 OR MIT"
+repository = "https://github.com/trailsd/trails"
+keywords = ["trails", "lifecycle", "orchestration", "distributed"]
+categories = ["network-programming"]
+
+[dependencies]
+tokio = { version = "1", features = ["rt", "net", "sync", "time", "macros"] }
+tokio-tungstenite = { version = "0.24", features = ["native-tls"] }
+futures = "0.3"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+uuid = { version = "1", features = ["v4", "serde"] }
+chrono = { version = "0.4", features = ["serde"] }
+ed25519-dalek = { version = "2", features = ["rand_core"] }
+rand = "0.8"
+base64 = "0.22"
+tracing = "0.1"
+
+[dev-dependencies]
+tokio = { version = "1", features = ["full"] }
+tracing-subscriber = "0.3"

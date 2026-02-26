@@ -1,0 +1,45 @@
+# TRAILS local development stack.
+#
+# Usage:
+#   docker compose up -d postgres    # Postgres only (build server locally)
+#   docker compose up -d             # Full stack (requires server image)
+#
+# First time:
+#   docker compose up -d postgres
+#   cd server && cargo run           # runs migration automatically
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: trails
+      POSTGRES_USER: trails
+      POSTGRES_PASSWORD: trails
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      # Auto-run migration on first start:
+      - ./server/migrations/001_init.sql:/docker-entrypoint-initdb.d/001_init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U trails"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  trailsd:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgres://trails:trails@postgres:5432/trails
+      LISTEN_ADDR: 0.0.0.0:8443
+      RUST_LOG: trailsd=info,tower_http=info
+    ports:
+      - "8443:8443"
+
+volumes:
+  pgdata:

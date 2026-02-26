@@ -1,0 +1,34 @@
+{
+  "name": "005_disconnect",
+  "description": "Client sends disconnect message with reason 'completed'. Server transitions to 'done'. No crash record created.",
+  "phase": 1,
+  "steps": [
+    {
+      "action": "setup",
+      "description": "Register a new app, send one Status to reach 'running'."
+    },
+    {
+      "action": "client_send",
+      "message": {
+        "type": "disconnect",
+        "app_id": "{{APP_ID_DISC}}",
+        "reason": "completed"
+      }
+    },
+    {
+      "action": "delay",
+      "seconds": 1,
+      "reason": "Allow server to process disconnect and WS close."
+    },
+    {
+      "action": "db_check",
+      "query": "SELECT status, disconnected_at IS NOT NULL as has_disc FROM apps WHERE app_id = '{{APP_ID_DISC}}'",
+      "expect": { "status": "done", "has_disc": true }
+    },
+    {
+      "action": "db_check",
+      "query": "SELECT count(*) as crash_count FROM crashes WHERE app_id = '{{APP_ID_DISC}}'",
+      "expect": { "crash_count": 0 }
+    }
+  ]
+}

@@ -1,0 +1,54 @@
+{
+  "name": "002_status",
+  "description": "After registration, client sends Status message. Server transitions to 'running', stores message + snapshot, returns ack.",
+  "phase": 1,
+  "precondition": "001_register",
+  "steps": [
+    {
+      "action": "client_send",
+      "message": {
+        "type": "message",
+        "app_id": "{{APP_ID}}",
+        "header": {
+          "msg_type": "Status",
+          "timestamp": "{{NOW_MS}}",
+          "seq": 1,
+          "correlation_id": null
+        },
+        "payload": {
+          "phase": "processing",
+          "progress": 0.5,
+          "rows_done": 50000,
+          "rows_total": 100000
+        },
+        "sig": null
+      }
+    },
+    {
+      "action": "client_expect",
+      "checks": [
+        { "field": "type", "equals": "ack" },
+        { "field": "seq", "equals": 1 }
+      ]
+    },
+    {
+      "action": "db_check",
+      "query": "SELECT status FROM apps WHERE app_id = '{{APP_ID}}'",
+      "expect": { "status": "running" }
+    },
+    {
+      "action": "db_check",
+      "query": "SELECT msg_type, seq, payload_json->>'progress' as progress FROM messages WHERE app_id = '{{APP_ID}}' AND msg_type = 'Status'",
+      "expect": {
+        "msg_type": "Status",
+        "seq": 1,
+        "progress": "0.5"
+      }
+    },
+    {
+      "action": "db_check",
+      "query": "SELECT snapshot_json->>'progress' as progress FROM snapshots WHERE app_id = '{{APP_ID}}' ORDER BY created_at DESC LIMIT 1",
+      "expect": { "progress": "0.5" }
+    }
+  ]
+}

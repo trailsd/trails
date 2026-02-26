@@ -1,0 +1,52 @@
+{
+  "name": "004_error",
+  "description": "Client sends Error message. Server transitions to 'error', stores message. Error is terminal.",
+  "phase": 1,
+  "note": "Uses a separate app_id from 003 — this is an independent flow.",
+  "steps": [
+    {
+      "action": "setup",
+      "description": "Register a new app, send one Status to reach 'running'."
+    },
+    {
+      "action": "client_send",
+      "message": {
+        "type": "message",
+        "app_id": "{{APP_ID_ERR}}",
+        "header": {
+          "msg_type": "Error",
+          "timestamp": "{{NOW_MS}}",
+          "seq": 2,
+          "correlation_id": null
+        },
+        "payload": {
+          "message": "OutOfMemoryError processing table customers",
+          "detail": {
+            "row_number": 50231,
+            "batch": 7,
+            "memory_used_mb": 3800,
+            "checkpoint": "customers:row:50000"
+          }
+        },
+        "sig": null
+      }
+    },
+    {
+      "action": "client_expect",
+      "checks": [
+        { "field": "type", "equals": "ack" },
+        { "field": "seq", "equals": 2 }
+      ]
+    },
+    {
+      "action": "db_check",
+      "query": "SELECT status FROM apps WHERE app_id = '{{APP_ID_ERR}}'",
+      "expect": { "status": "error" }
+    },
+    {
+      "action": "db_check",
+      "query": "SELECT payload_json->>'message' as msg FROM messages WHERE app_id = '{{APP_ID_ERR}}' AND msg_type = 'Error'",
+      "expect": { "msg": "OutOfMemoryError processing table customers" }
+    }
+  ]
+}

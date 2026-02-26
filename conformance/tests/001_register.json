@@ -1,0 +1,61 @@
+{
+  "name": "001_register",
+  "description": "Client connects and sends register message. Server creates app row, transitions to 'connected', returns Registered ack with server pub key.",
+  "phase": 1,
+  "steps": [
+    {
+      "action": "client_send",
+      "message": {
+        "type": "register",
+        "app_id": "{{APP_ID}}",
+        "parent_id": "{{PARENT_ID}}",
+        "app_name": "conformance-test-001",
+        "child_pub_key": "{{CLIENT_PUB_KEY}}",
+        "process_info": {
+          "pid": 12345,
+          "ppid": 1,
+          "uid": 1000,
+          "gid": 1000,
+          "hostname": "test-host",
+          "node_name": null,
+          "pod_ip": null,
+          "namespace": null,
+          "start_time": "{{NOW_MS}}",
+          "executable": "/usr/bin/test"
+        },
+        "role_refs": [],
+        "sig": null
+      }
+    },
+    {
+      "action": "server_expect",
+      "message_type": "register",
+      "checks": [
+        { "field": "app_id", "equals": "{{APP_ID}}" },
+        { "field": "app_name", "equals": "conformance-test-001" },
+        { "field": "child_pub_key", "starts_with": "ed25519:" }
+      ]
+    },
+    {
+      "action": "client_expect",
+      "message": {
+        "type": "registered",
+        "app_id": "{{APP_ID}}"
+      },
+      "checks": [
+        { "field": "type", "equals": "registered" },
+        { "field": "app_id", "equals": "{{APP_ID}}" },
+        { "field": "server_pub_key", "starts_with": "ed25519:" }
+      ]
+    },
+    {
+      "action": "db_check",
+      "query": "SELECT status, pub_key, app_name FROM apps WHERE app_id = '{{APP_ID}}'",
+      "expect": {
+        "status": "connected",
+        "app_name": "conformance-test-001",
+        "pub_key": "{{CLIENT_PUB_KEY}}"
+      }
+    }
+  ]
+}

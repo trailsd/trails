@@ -1,0 +1,31 @@
+{
+  "name": "006_crash_detection",
+  "description": "Client connects and reaches 'running', then abruptly drops the TCP connection (no disconnect message). Server detects crash within 0-2 seconds, transitions to 'crashed', records crash with type 'connection_drop'.",
+  "phase": 1,
+  "steps": [
+    {
+      "action": "setup",
+      "description": "Register a new app, send one Status to reach 'running'."
+    },
+    {
+      "action": "client_action",
+      "action_type": "drop_connection",
+      "description": "Abruptly close TCP socket without sending disconnect."
+    },
+    {
+      "action": "delay",
+      "seconds": 3,
+      "reason": "Allow server to detect connection drop (0-2 seconds per spec §7)."
+    },
+    {
+      "action": "db_check",
+      "query": "SELECT status FROM apps WHERE app_id = '{{APP_ID_CRASH}}'",
+      "expect": { "status": "crashed" }
+    },
+    {
+      "action": "db_check",
+      "query": "SELECT crash_type FROM crashes WHERE app_id = '{{APP_ID_CRASH}}' ORDER BY detected_at DESC LIMIT 1",
+      "expect": { "crash_type": "connection_drop" }
+    }
+  ]
+}

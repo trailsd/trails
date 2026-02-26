@@ -1,0 +1,44 @@
+{
+  "name": "003_result",
+  "description": "Client sends Result message. Server transitions to 'done', stores message, returns ack. Result is terminal.",
+  "phase": 1,
+  "precondition": "002_status",
+  "steps": [
+    {
+      "action": "client_send",
+      "message": {
+        "type": "message",
+        "app_id": "{{APP_ID}}",
+        "header": {
+          "msg_type": "Result",
+          "timestamp": "{{NOW_MS}}",
+          "seq": 2,
+          "correlation_id": null
+        },
+        "payload": {
+          "rows_scanned": 100000,
+          "pii_columns_found": 4,
+          "duration_sec": 342
+        },
+        "sig": null
+      }
+    },
+    {
+      "action": "client_expect",
+      "checks": [
+        { "field": "type", "equals": "ack" },
+        { "field": "seq", "equals": 2 }
+      ]
+    },
+    {
+      "action": "db_check",
+      "query": "SELECT status FROM apps WHERE app_id = '{{APP_ID}}'",
+      "expect": { "status": "done" }
+    },
+    {
+      "action": "db_check",
+      "query": "SELECT msg_type, payload_json->>'rows_scanned' as rows FROM messages WHERE app_id = '{{APP_ID}}' AND msg_type = 'Result'",
+      "expect": { "msg_type": "Result", "rows": "100000" }
+    }
+  ]
+}
